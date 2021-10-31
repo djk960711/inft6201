@@ -1,0 +1,7 @@
+pandas
+pyyaml
+matplotlib
+mord
+scipy
+numpy
+sklearn
