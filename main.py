@@ -3,6 +3,7 @@ import pandas as pd
 import yaml
 
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 
 from src import Ingestion, Feature, Modelling
 
@@ -73,14 +74,19 @@ def modelling_and_diagnostics():
     test_data_Y = test_data[config['modelling']['response']]
     model, normaliser = Modelling.fit_model(train_data_X, train_data_Y)
 
-    print(f'Train error is {model.score(train_data_X, train_data_Y)} and'
-          f' test error is {model.score(test_data_X, test_data_Y)}')
+    print(f'Train error is {model.score(normaliser.transform(train_data_X), train_data_Y)} and'
+          f' test error is {model.score(normaliser.transform(test_data_X), test_data_Y)}')
     coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
+    conf_mat = confusion_matrix(test_data_Y, model.predict(normaliser.transform(test_data_X)))
+    cv_fig = Modelling.compute_cv_curve(model)
 
     # Step n: Save results to the results folder
     if not os.path.exists("results/modelling"):
         os.makedirs("results/modelling")
     coefficients.to_csv("results/modelling/coef_estimates.csv")
+    cv_fig.savefig("results/modelling/cv_fig.png", bbox_inches="tight")
+    pd.DataFrame(conf_mat, columns=["1", "2", "3", "4"]).to_csv("results/modelling/conf_mat")
+
 
 if __name__ == "__main__":
     # These two parts of the pipeline are split into two, since each is time-consuming.
