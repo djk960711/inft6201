@@ -23,6 +23,12 @@ def ingestion_and_enrichment():
     # Step 2: Feature Creation
     ingested_data['Roadway_Clearance_Time'] = Feature.create_rct_column(ingested_data, config['feature_creation'])
     ingested_data['Road_Type'] = Feature.create_road_type_column(ingested_data, config['feature_creation'])
+    ingested_data['Hour'] = ingested_data['Start_Time'].dt.hour
+    hour_plot, hour_mappings, ingested_data['Hour_Cluster'] = Feature.created_clustered_column(
+        ingested_data,
+        'Hour',
+        config['feature_creation']
+    )
     weather_plot, weather_mappings, ingested_data['Weather_Cluster'] = Feature.created_clustered_column(
         ingested_data,
         'Weather_Condition',
@@ -48,6 +54,8 @@ def ingestion_and_enrichment():
     county_plot.savefig("results/preprocessing/county_clustering.png", bbox_inches='tight')
     road_type_mappings.to_csv("results/preprocessing/road_type_mappings.csv")
     road_type_plot.savefig("results/preprocessing/road_type_clustering.png", bbox_inches='tight')
+    hour_mappings.to_csv("results/preprocessing/hour_mappings.csv")
+    hour_plot.savefig("results/preprocessing/hour_clustering.png", bbox_inches='tight')
 
 def modelling_and_diagnostics():
     """
@@ -70,15 +78,14 @@ def modelling_and_diagnostics():
     # Step 4: Fit Regularised Linear Regression model
     train_data_X = train_data[config['modelling']['predictors']]
     train_data_Y = train_data[config['modelling']['response']]
-    test_data_X = test_data[config['modelling']['predictors']]
-    test_data_Y = test_data[config['modelling']['response']]
-    model, normaliser = Modelling.fit_model(train_data_X, train_data_Y)
-
+    validation_data_X = test_data[config['modelling']['predictors']]
+    validation_data_Y = test_data[config['modelling']['response']]
+    model_error_values, optimal_alpha, model, normaliser = Modelling.fit_cv_model(train_data_X, train_data_Y)
     print(f'Train error is {model.score(normaliser.transform(train_data_X), train_data_Y)} and'
-          f' test error is {model.score(normaliser.transform(test_data_X), test_data_Y)}')
+          f' test error is {model.score(normaliser.transform(validation_data_X), validation_data_Y)}')
     coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
-    conf_mat = confusion_matrix(test_data_Y, model.predict(normaliser.transform(test_data_X)))
-    cv_fig = Modelling.compute_cv_curve(model)
+    conf_mat = confusion_matrix(validation_data_Y, model.predict(normaliser.transform(validation_data_X)))
+    cv_fig = Modelling.compute_cv_curve(model_error_values, optimal_alpha)
 
     # Step n: Save results to the results folder
     if not os.path.exists("results/modelling"):

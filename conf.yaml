@@ -36,6 +36,13 @@ feature_creation:
     default_cluster: "Clear" # This identifies where null values should be moved to
     font_size: 10 # This specifies how big the labels should be
     fig_size: [20,8]
+  Hour:
+    number_clusters: 4
+    algorithm: "ward"
+    cluster_names: [ "Clear", "Overcast", "Snow", "Fog" ]
+    default_cluster: "Clear" # This identifies where null values should be moved to
+    font_size: 10 # This specifies how big the labels should be
+    fig_size: [ 20,8 ]
   County:
     number_clusters: 5
     algorithm: "average"
