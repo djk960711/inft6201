@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -21,12 +22,24 @@ def ingestion_and_enrichment():
     ingested_data = Ingestion.dedupe_asset(raw_data, config['ingestion'])
 
     # Step 2: Feature Creation
+    ## 2.1. Roadway clearance time: The time taken for the incident to be cleared
     ingested_data['Roadway_Clearance_Time'] = Feature.create_rct_column(ingested_data, config['feature_creation'])
+    ## 2.2. Road and incident type: Using regex to extract the type of road and characteristics about the incident
     ingested_data['Road_Type'] = Feature.create_road_type_column(ingested_data, config['feature_creation'])
-    ingested_data['Hour'] = ingested_data['Start_Time'].dt.hour
-    hour_plot, hour_mappings, ingested_data['Hour_Cluster'] = Feature.created_clustered_column(
+    ingested_data[list(config['feature_creation']['incident_type'].keys())] = Feature.created_incident_type_column(
         ingested_data,
+        config['feature_creation']
+    )
+    ## 2.3. Time-of-day and day-of-week metrics.
+    ingested_data['Hour'] = ingested_data['Start_Time'].dt.hour
+    ingested_data['Weekend'] = (ingested_data['Start_Time'].dt.weekday >= 5).astype(np.int32) # Saturday=5, Sunday=6
+    hour_plot, hour_mappings, ingested_data['Hour_Cluster'] = Feature.created_clustered_column(
+        ingested_data, # Create a dendrogram based on the severity profile of hour of days. This then forms 4 clusters
         'Hour',
+        config['feature_creation']
+    )
+    ingested_data[list(config['feature_creation']['time_of_day'].keys())] = Feature.created_hour_type_column(
+        ingested_data,
         config['feature_creation']
     )
     weather_plot, weather_mappings, ingested_data['Weather_Cluster'] = Feature.created_clustered_column(
@@ -81,21 +94,30 @@ def modelling_and_diagnostics():
     validation_data_X = test_data[config['modelling']['predictors']]
     validation_data_Y = test_data[config['modelling']['response']]
     model_error_values, optimal_alpha, model, normaliser = Modelling.fit_cv_model(train_data_X, train_data_Y)
-    print(f'Train error is {model.score(normaliser.transform(train_data_X), train_data_Y)} and'
-          f' test error is {model.score(normaliser.transform(validation_data_X), validation_data_Y)}')
-    coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
-    conf_mat = confusion_matrix(validation_data_Y, model.predict(normaliser.transform(validation_data_X)))
-    cv_fig = Modelling.compute_cv_curve(model_error_values, optimal_alpha)
 
+    # Step 5: Calculate diagnostic metrics
+    ## 5.1. The train and validation error should be roughly equal if overfitting is negligible
+    print(f'Train error is {model.score(normaliser.transform(train_data_X), train_data_Y)} and'
+          f' validation error is {model.score(normaliser.transform(validation_data_X), validation_data_Y)}')
+    ## 5.2. The coefficients describe the predictors selected by LASSO and their impact on the fit.
+    coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
+    ## 5.3. The confusion matrix describes the predicted vs observed severity
+    conf_mat = confusion_matrix(validation_data_Y, model.predict(normaliser.transform(validation_data_X)))
+    ## 5.4. The CV plot shows the error at different levels of regularisation.
+    cv_fig = Modelling.compute_cv_curve(model_error_values, optimal_alpha)
     # Step n: Save results to the results folder
     if not os.path.exists("results/modelling"):
         os.makedirs("results/modelling")
-    coefficients.to_csv("results/modelling/coef_estimates.csv")
-    cv_fig.savefig("results/modelling/cv_fig.png", bbox_inches="tight")
-    pd.DataFrame(conf_mat, columns=["1", "2", "3", "4"]).to_csv("results/modelling/conf_mat")
+    coefficients.to_csv("results/modelling/coef_estimates.csv") # Write out the coefficients
+    cv_fig.savefig("results/modelling/cv_fig.png", bbox_inches="tight") # Write out the CV plot for the LASSO fitting
+    pd.DataFrame( # Write out a confision matrix
+        conf_mat,
+        columns=[f'Predicted {x}' for x in range(1,5)],
+        index=[f'Observed {x}' for x in range(1,5)]
+    ).to_csv("results/modelling/conf_mat")
 
 
 if __name__ == "__main__":
     # These two parts of the pipeline are split into two, since each is time-consuming.
-    # ingestion_and_enrichment()
+    ingestion_and_enrichment()
     modelling_and_diagnostics()

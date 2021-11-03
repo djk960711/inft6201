@@ -23,4 +23,4 @@ class OrdinalLasso(linear_model.Lasso):
 
     def score(self, X, y):
         pred = self.predict(X)
-        return - metrics.mean_squared_error(pred, y)
+        return metrics.mean_squared_error(pred, y)

@@ -62,7 +62,7 @@ class Modelling:
             ]
             for train_index, test_index in k_folds.split(X_norm)
         ])), index=alphas)
-        optimal_alpha = model_error_values.sum(axis=1).sort_values(ascending=False).index[0]
+        optimal_alpha = model_error_values.sum(axis=1).sort_values(ascending=True).index[0]
         optimal_model = fit_model(X_norm, Y, alpha=optimal_alpha)
         return model_error_values, optimal_alpha, optimal_model, normaliser
 
@@ -91,7 +91,7 @@ class Modelling:
         plt.vlines(
             optimal_alpha,
             0,
-            min(minus_sd_mse_for_alpha),
+            max(pos_sd_mse_for_alpha),
             linestyles="dashed"
         )
         ax.set_xscale('log')
@@ -112,7 +112,7 @@ def normalise_and_rebalance(X):
 
 
 def fit_model(train_X, train_Y, alpha=0) -> OrdinalLasso:
-    model = OrdinalLasso(alpha=alpha)  #(cv=10, max_iter=10000, eps=1e-2)
+    model = OrdinalLasso(alpha=alpha)
     oversample = SMOTE()
     X, Y = oversample.fit_resample(train_X, train_Y)
     model.fit(X,Y)

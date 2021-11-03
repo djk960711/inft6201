@@ -26,9 +26,10 @@ class Feature:
     @staticmethod
     def create_road_type_column(ingested_file: pd.DataFrame, feature_config: Dict) -> pd.Series:
         """
-        This partitions the
+        This uses regex to extract the road type from the Street column.
         :param ingested_file:
-        :return:
+        :param feature_config: The config containing the list of types and the regex to map to each (e.g. ST -> Street)
+        :return: Road type column
         """
         return pd.Series(np.select(
             [
@@ -47,6 +48,50 @@ class Feature:
             default=feature_config['street_type']['default']
         )
         )
+
+    @staticmethod
+    def created_incident_type_column(ingested_file: pd.DataFrame, feature_config: Dict):
+        """
+        This performs regex on the Description column to extract whether the incident is a specific type (e.g. Truck)
+        :param ingested_file:
+        :param feature_config: The incident type and the regex to map to each. (E.g. \bTRUCK\b -> Truck)
+        :return: The column with a binary match.
+        """
+        return pd.concat([
+            pd.Series(
+                ingested_file["Description"].str.contains(
+                    # Look for words indicating an incident type
+                    re.compile(
+                        regex_rule,
+                        re.IGNORECASE
+                    ),
+                    regex=True
+                ),
+                name=column,
+                dtype=np.int32
+            )
+            for column, regex_rule
+            in feature_config['incident_type'].items()
+        ], axis=1)
+
+    @staticmethod
+    def created_hour_type_column(ingested_file: pd.DataFrame, feature_config: Dict):
+        """
+        This matches to the hour of crash starting to classify the time-of-day
+        (where categories based on a cluster analysis)
+        :param ingested_file:
+        :param feature_config: The time-of-day category and the hours in this category
+        :return: The column with a binary match.
+        """
+        return pd.concat([
+            pd.Series(
+                ingested_file["Hour"].isin(included_hours),
+                name=column,
+                dtype=np.int32
+            )
+            for column, included_hours
+            in feature_config['time_of_day'].items()
+        ], axis=1)
 
     @staticmethod
     def created_clustered_column(
