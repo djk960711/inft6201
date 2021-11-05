@@ -1,5 +1,6 @@
 import math
 from typing import Dict
+import logging
 
 import numpy as np
 import pandas as pd
@@ -7,7 +8,9 @@ from scipy import stats
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from imblearn.over_sampling import SMOTE
-from .OrdLassoCV import OrdinalLasso
+from .OrdLassoCV import OrdinalLasso, OrdinalClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn import linear_model, svm, metrics
 
 import matplotlib.pyplot as plt
 
@@ -35,9 +38,9 @@ class Modelling:
         Y,
         alpha_min = 1e-3,
         alpha_max=10**(-0.8),
-        n_iterations=25,
+        n_iterations=10,
         n_folds=5
-    ) -> [(pd.DataFrame, float, OrdinalLasso, StandardScaler)]:
+    ) -> [(pd.DataFrame, float, LogisticRegression, StandardScaler)]:
         """
         The native CV search cannot score based on an ordinal-based loss function.
         :param X: The training values
@@ -56,7 +59,10 @@ class Modelling:
         ]
         model_error_values = pd.DataFrame(np.transpose(np.stack([
             [
-            np.array(fit_model(X_norm[train_index], Y[train_index], alpha).score(X_norm[test_index], Y[test_index]))
+            np.array(metrics.log_loss(
+                Y[test_index],
+                fit_model(X_norm[train_index], Y[train_index], alpha).predict_proba(X_norm[test_index])
+            ))
             for alpha
             in alphas
             ]
@@ -111,8 +117,9 @@ def normalise_and_rebalance(X):
     return X_norm, normaliser
 
 
-def fit_model(train_X, train_Y, alpha=0) -> OrdinalLasso:
-    model = OrdinalLasso(alpha=alpha)
+def fit_model(train_X, train_Y, alpha=1) -> LogisticRegression:
+    model = OrdinalClassifier(LogisticRegression(penalty='l1', C=1/alpha, solver='saga'))
+    #OrdinalLasso(alpha=alpha)
     oversample = SMOTE()
     X, Y = oversample.fit_resample(train_X, train_Y)
     model.fit(X,Y)

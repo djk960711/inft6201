@@ -17,6 +17,7 @@ feature_creation:
     Fuel_Spillage: "\\bFUEL\\sSPILLAGE\\b"
     Multilane_Road: "\\bLANE(?:S)?\\b"
     Outage: "TRAFFIC\\sSIGNALS\\bNOT|\\bFALLEN\\sTREE|\\bFALLEN\\sPOWER"
+    Slow_Traffic: "SLOW\\bTRAFFIC"
   time_of_day:
     Late_Night: [20,21,22,23,0,1,2,3,4,5,6]
     Morning_Peak: [7,8,9,10]
@@ -219,3 +220,4 @@ modelling:
     - "Fuel_Spillage"
     - "Multilane_Road"
     - "Outage"
+    - "Slow_Traffic"

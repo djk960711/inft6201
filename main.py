@@ -5,6 +5,7 @@ import yaml
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 
 from src import Ingestion, Feature, Modelling
 
@@ -86,6 +87,7 @@ def modelling_and_diagnostics():
     enriched_data = pd.get_dummies(enriched_data, columns=config['modelling']['columns_to_dummy'], drop_first=True)
 
     enriched_data = enriched_data[[config['modelling']['response'], *config['modelling']['predictors']]]
+    enriched_data[config['modelling']['response']] = enriched_data[config['modelling']['response']]-1
     train_data, test_data = train_test_split(enriched_data, test_size=config['modelling']['test_split'])
 
     # Step 4: Fit Regularised Linear Regression model
@@ -97,14 +99,22 @@ def modelling_and_diagnostics():
 
     # Step 5: Calculate diagnostic metrics
     ## 5.1. The train and validation error should be roughly equal if overfitting is negligible
-    print(f'Train error is {model.score(normaliser.transform(train_data_X), train_data_Y)} and'
-          f' validation error is {model.score(normaliser.transform(validation_data_X), validation_data_Y)}')
-    ## 5.2. The coefficients describe the predictors selected by LASSO and their impact on the fit.
-    coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
-    ## 5.3. The confusion matrix describes the predicted vs observed severity
+    print('Train log-loss error is {:.2f} and validation error is {:.2f}'.format(
+        metrics.log_loss(
+            train_data_Y,
+            model.predict_proba(normaliser.transform(train_data_X))
+        ),
+        metrics.log_loss(
+            validation_data_Y,
+            model.predict_proba(normaliser.transform(validation_data_X))
+        ),
+    ))
+    ## 5.2. The confusion matrix describes the predicted vs observed severity
     conf_mat = confusion_matrix(validation_data_Y, model.predict(normaliser.transform(validation_data_X)))
-    ## 5.4. The CV plot shows the error at different levels of regularisation.
+    ## 5.3. The CV plot shows the error at different levels of regularisation.
     cv_fig = Modelling.compute_cv_curve(model_error_values, optimal_alpha)
+    ## 5.4. The coefficients describe the predictors selected by LASSO and their impact on the fit.
+    coefficients = pd.DataFrame(zip(train_data_X.columns, model.coef_), columns=["predict", "coef_estimate"])
     # Step n: Save results to the results folder
     if not os.path.exists("results/modelling"):
         os.makedirs("results/modelling")
@@ -119,5 +129,5 @@ def modelling_and_diagnostics():
 
 if __name__ == "__main__":
     # These two parts of the pipeline are split into two, since each is time-consuming.
-    ingestion_and_enrichment()
+    # ingestion_and_enrichment()
     modelling_and_diagnostics()
