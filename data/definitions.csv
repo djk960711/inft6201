@@ -1,0 +1,13 @@
+Column Name,Description
+ID,This is a unique identifier of the accident record.
+Severity,"Shows the severity of the accident, a number between 1 and 4, where 1 indicates the least impact on traffic (i.e., short delay as a result of the accident) and 4 indicates a significant impact on traffic (i.e., long delay)."
+Start_Time,"Shows start time of the accident in local time zone."
+End_Time,"Shows end time of the accident in local time zone. End time here refers to when the impact of accident on traffic flow was dismissed."
+Start_Lat,"Shows latitude in GPS coordinate of the start point."
+Start_Lng,"Shows longitude in GPS coordinate of the start point."
+End_Lat,"Shows latitude in GPS coordinate of the end point."
+End_Lng,"Shows longitude in GPS coordinate of the end point."
+Distance.mi.,"The length of the road extent affected by the accident."
+Description,"Shows natural language description of the accident."
+Number,"Shows the street number in address record."
+Street,"Shows the street name in address record."

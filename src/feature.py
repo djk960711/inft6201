@@ -152,6 +152,19 @@ class Feature:
             cluster_mapping
         ).fillna(feature_config[source_column]['default_cluster'])
         return (fig, pd.DataFrame.from_dict(cluster_mapping, orient='index', columns=['cluster']), new_column)
+    @staticmethod
+    def create_regional_council_column(
+            ingested_file: pd.DataFrame,
+            feature_config: Dict
+    ) -> pd.Series:
+        mappings = { # Get a mapping from county to regional council from the config.
+            county: regional_council
+            for regional_council, counties
+            in feature_config['Regional_Council'].items()
+            for county in counties
+        }
+        return ingested_file['County'].replace(mappings)
+
 
 
 def plot_dendrogram(model, **kwargs):

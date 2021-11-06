@@ -1,9 +1,14 @@
 input_file: "data/ny_accidents.csv"
+definition_file: "data/definitions.csv"
 ingestion:
   timestamp_columns:
     Start_Time: "%Y-%m-%d %H:%M:%S"
     End_Time: "%Y-%m-%d %H:%M:%S"
-  deduping_keys: ["Start_Time", "End_Time", "City"]
+  deduping_keys:
+    - ["Start_Time", "End_Time", "City"]
+    - ["Start_Time", "Start_Lat", "Start_Lng"]
+    - ["End_Time", "Start_Lat", "Start_Lng"]
+    - ["Start_Time", "Description", "County", "Severity"] # Descriptions are usually quite well defined
 
 feature_creation:
   roadway_clearance_time:
@@ -65,6 +70,17 @@ feature_creation:
     default_cluster: "Urban_Centre" # This identifies where null values should be moved to
     font_size: 8 # This specifies how big the labels should be
     fig_size: [20,8]
+  Regional_Council:
+    Western_New_York: ["Allegany", "Cattaraugus", "Chautauqua", "Erie", "Niagara"]
+    Finger_Lakes: ["Genesee", "Livingston", "Monroe", "Ontario", "Orleans", "Seneca", "Wayne", "Wyoming", "Yates"]
+    Southern_Tier: ["Broome", "Chemung", "Chenango", "Delaware", "Schuyler", "Steuben", "Tioga", "Tompkins"]
+    Central_New_York: ["Cayuga", "Cortland", "Madison", "Onondaga", "Oswego"]
+    Mohawk_Valley: ["Fulton", "Herkimer", "Montgomery", "Oneida", "Otsego", "Schoharie"]
+    North_Country: ["Clinton", "Essex", "Franklin", "Hamilton", "Jefferson", "Lewis", "Saint Lawrence", "St. Lawrence"]
+    Capital_Region: ["Albany", "Columbia", "Greene", "Saratoga", "Schenectady", "Rensselaer", "Warren", "Washington"]
+    Mid_Hudson: ["Dutchess", "Orange", "Putnam", "Rockland", "Sullivan", "Ulster", "Westchester"]
+    New_York_City: ["Bronx", "Kings", "New York", "Richmond", "Queens"]
+    Long_Island: ["Nassau", "Suffolk"]
   Road_Type:
     number_clusters: 6
     algorithm: "ward"
@@ -75,7 +91,7 @@ feature_creation:
 modelling:
   columns_to_dummy: ["Weather_Cluster", "Road_Type", "Road_Type_Cluster", "County_Cluster", "County",
                      "Astronomical_Twilight", "Nautical_Twilight", "Sunrise_Sunset", "Civil_Twilight",
-                     "Nautical_Twilight"]
+                     "Regional_Council"]
   columns_to_impute:
     Temperature.F.: "median"
     Visibility.mi.: "median"
@@ -86,13 +102,12 @@ modelling:
     Civil_Twilight: "mode"
     Nautical_Twilight: "mode"
     Astronomical_Twilight: "mode"
-  test_split: 0.25
-  response: "Severity"
+  response: "Severity_Gt_2"
   predictors:
-    - "Temperature.F."
-    - "Wind_Chill.F."
+    # - "Temperature.F."
+    # - "Wind_Chill.F."
     - "Visibility.mi."
-    - "Wind_Speed.mph."
+    # - "Wind_Speed.mph."
     - "Precipitation.in."
     - "Amenity"
     - "Bump"
@@ -122,7 +137,7 @@ modelling:
     - "Road_Type_County_Route"
     - "Road_Type_Drive"
     - "Road_Type_Expressway"
-    - "Road_Type_Federal_Route"
+    #- "Road_Type_Federal_Route"
     - "Road_Type_Highway"
     - "Road_Type_Mall_Lane"
     - "Road_Type_Numbered_Street"
@@ -134,10 +149,10 @@ modelling:
     - "Road_Type_Street"
     - "Road_Type_Turnpike"
     #- "Road_Type_Cluster_Boulevards_Places"
-    - "Road_Type_Cluster_Circuits"
-    - "Road_Type_Cluster_County Route"
+    #- "Road_Type_Cluster_Circuits"
+    #- "Road_Type_Cluster_County Route"
     - "Road_Type_Cluster_Metropolitan"
-    - "Road_Type_Cluster_Spur"
+    #- "Road_Type_Cluster_Spur"
     - "Road_Type_Cluster_State and Federal Routes"
     #- "County_Cluster_Regional_Centre"
     - "County_Cluster_Rural"
@@ -221,3 +236,13 @@ modelling:
     - "Multilane_Road"
     - "Outage"
     - "Slow_Traffic"
+    - "Regional_Council_Western_New_York"
+    - "Regional_Council_Finger_Lakes"
+    - "Regional_Council_Southern_Tier"
+    - "Regional_Council_Central_New_York"
+    - "Regional_Council_Mohawk_Valley"
+    - "Regional_Council_North_Country"
+    # - "Regional_Council_Capital_Region"
+    - "Regional_Council_Mid_Hudson"
+    - "Regional_Council_New_York_City"
+    - "Regional_Council_Long_Island"

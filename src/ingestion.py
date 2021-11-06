@@ -25,10 +25,12 @@ class Ingestion(object):
         :param ingestion_config: The config parameters related to ingestion
         :return: The deduped asset
         """
-        deduping_keys = ingestion_config['deduping_keys']
-        raw_data_deduped = pd.concat([
-            rows_for_key.sort_index().head(1)
-            for _, rows_for_key
-            in raw_file.groupby(by=deduping_keys)
-        ])
+        # There are multiple key combinations used to dedupe. This is because not all dupes are the same.
+        raw_data_deduped = raw_file
+        for deduping_keys in ingestion_config['deduping_keys']:
+            print(f"Previous row size: {len(raw_data_deduped)}")
+            print(f"Deduping keys: {str(deduping_keys)}")
+            raw_data_deduped.drop_duplicates(subset=deduping_keys, inplace=True)
+            print(f"Subsequent row size: {len(raw_data_deduped)}")
+
         return raw_data_deduped
