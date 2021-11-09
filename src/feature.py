@@ -10,6 +10,9 @@ from typing import Dict
 
 
 class Feature:
+    """
+    This module is designed to house all functionality related to feature creation and clustering analysis
+    """
     @staticmethod
     def create_rct_column(ingested_file: pd.DataFrame, feature_config: Dict) -> pd.Series:
         """
@@ -24,14 +27,14 @@ class Feature:
         return roadway_clearance_time
 
     @staticmethod
-    def create_road_type_column(ingested_file: pd.DataFrame, feature_config: Dict) -> pd.Series:
+    def create_road_type_column(ingested_file: pd.DataFrame, feature_config: Dict):
         """
         This uses regex to extract the road type from the Street column.
         :param ingested_file:
         :param feature_config: The config containing the list of types and the regex to map to each (e.g. ST -> Street)
         :return: Road type column
         """
-        return pd.Series(np.select(
+        return np.select(
             [
                 ingested_file["Street"].str.contains(
                     # Look for words indicating a street, boulevard or lane
@@ -47,7 +50,7 @@ class Feature:
             feature_config['street_type']['rules'].keys(),
             default=feature_config['street_type']['default']
         )
-        )
+
 
     @staticmethod
     def created_incident_type_column(ingested_file: pd.DataFrame, feature_config: Dict):
@@ -72,6 +75,24 @@ class Feature:
             )
             for column, regex_rule
             in feature_config['incident_type'].items()
+        ], axis=1)
+
+    @staticmethod
+    def created_simp_weather_column(ingested_file: pd.DataFrame, feature_config: Dict):
+        """
+        This simplifies the numerous weather values into a series of simple flags
+        :param ingested_file:
+        :param feature_config: The weather categories and the weather values to use in each
+        :return: The column with a binary match.
+        """
+        return pd.concat([
+            pd.Series(
+                ingested_file["Weather_Condition"].isin(conditions_to_include),
+                name=column,
+                dtype=np.int32
+            )
+            for column, conditions_to_include
+            in feature_config['Weather_Simplified'].items()
         ], axis=1)
 
     @staticmethod
@@ -126,15 +147,16 @@ class Feature:
         fig, axes = plt.subplots(1, 1, figsize=feature_config[source_column]['fig_size'])
         dend_model = dend_model.fit(grouped_severity)
         plt.title(f"Hierarchical Clustering of {source_column} by Severity")
-        plot_dendrogram(
+        plot_dendrogram( # Plot the dendrogram, and label the categories
             dend_model,
-            labels=grouped_severity.index,
+            labels=[str(category).replace("_", " ") for category in grouped_severity.index],
             leaf_font_size=feature_config[source_column]['font_size']
         )
+        plt.xticks(rotation=45)
         plt.xlabel(source_column)
 
         # Cut the tree and report the clustered weather conditions
-        cut_model = cut_tree = AgglomerativeClustering(
+        cut_tree = AgglomerativeClustering(
             n_clusters=feature_config[source_column]['number_clusters'],
             linkage=feature_config[source_column]['algorithm']
         )

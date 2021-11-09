@@ -50,26 +50,44 @@ feature_creation:
       Park_Causeway: "PARK\\b|PATH|TRAIL|\\bTRL\\b|GREENWAY|LOCKHART\\sLOOP|PEDESTRIAN|CRK|FERRY|\\bPASS|BIKEWAY|\\bACRES\\b|\\bCAMP\\b|CSWY"
     default: "Street"
   Weather_Condition:
-    number_clusters: 4
+    number_clusters: 6
     algorithm: "ward"
-    cluster_names: ["Clear", "Overcast", "Snow", "Fog"]
+    cluster_names: ["Clear", "Overcast", "Snow", "Fog", "Five", "Six"]
     default_cluster: "Clear" # This identifies where null values should be moved to
-    font_size: 10 # This specifies how big the labels should be
-    fig_size: [20,8]
+    font_size: 6 # This specifies how big the labels should be
+    fig_size: [12,6]
+  Weather_Simplified:
+    Snow_Ice: ["Blowing Snow", "Blowing Snow / Windy", "Heavy Snow", "Heavy Snow / Windy", "Light Snow", "Ice Pellets",
+           "Light Snow / Windy", "Snow", "Sleet", "Snow / Windy", "Snow and Sleet", "Snow and Sleet / Windy",
+            "Wintry Mix"]
+    Fog_Haze: ["Fog", "Fog / Windy", "Haze", "Haze / Windy", "Light Freezing Fog", "Mist", "Drizzle and Fog"]
+    Clouds: [ "Cloudy", "Cloudy / Windy", "Mostly Cloudy", "Mostly Cloudy / Windy", "Partly Cloudy",
+              "Partly Cloudy / Windy", "Scattered Clouds"]
+    Rain: [ "Heavy Rain", "Heavy Rain / Windy", "Light Freezing Rain", "Light Rain", "Light Rain / Windy",
+            "Light Rain with Thunder", "Rain", "Rain / Windy", "Overcast","Drizzle","Drizzle and Fog","Light Drizzle",
+            "Light Drizzle / Windy","Light Freezing Drizzle", "N/A Precipitation"]
+    Windy: [ "Blowing Snow / Windy", "Cloudy / Windy", "Fair / Windy", "Fog / Windy", "Haze / Windy",
+             "Heavy Rain / Windy", "Heavy Snow / Windy", "Heavy T-Storm / Windy", "Light Drizzle / Windy",
+             "Light Rain / Windy", "Light Snow / Windy", "Mostly Cloudy / Windy", "Partly Cloudy / Windy",
+             "Patches of Fog / Windy", "Rain / Windy", "Snow / Windy", "Snow and Sleet / Windy", "T-Storm / Windy",
+             "Thunder / Windy"]
+    Storm: ["Heavy T-Storm","Heavy T-Storm / Windy","T-Storm","T-Storm / Windy","Light Rain with Thunder","Thunder",
+            "Thunder / Windy","Thunder in the Vicinity"]
+    Clear: ["Clear", "Fair"]
   Hour:
     number_clusters: 4
     algorithm: "ward"
     cluster_names: [ "Late_Night", "Day", "Early_Morning", "Morning_Peak" ]
     default_cluster: "Day" # This identifies where null values should be moved to
     font_size: 10 # This specifies how big the labels should be
-    fig_size: [ 20,8 ]
+    fig_size: [ 12,6 ]
   County:
     number_clusters: 5
     algorithm: "average"
     cluster_names: [ "Rural", "Urban_Centre", "Regional_Centre", "Upstate_West", "Upstate_East"]
     default_cluster: "Urban_Centre" # This identifies where null values should be moved to
-    font_size: 8 # This specifies how big the labels should be
-    fig_size: [20,8]
+    font_size: 6 # This specifies how big the labels should be
+    fig_size: [12,6]
   Regional_Council:
     Western_New_York: ["Allegany", "Cattaraugus", "Chautauqua", "Erie", "Niagara"]
     Finger_Lakes: ["Genesee", "Livingston", "Monroe", "Ontario", "Orleans", "Seneca", "Wayne", "Wyoming", "Yates"]
@@ -84,10 +102,10 @@ feature_creation:
   Road_Type:
     number_clusters: 6
     algorithm: "ward"
-    cluster_names: [ "Metropolitan", "State and Federal Routes", "County Route", "Spur", "Boulevards_Places", "Circuits"]
+    cluster_names: [ "Parks and Link Roads", "Shopping Districts", "Arterial Roads", "County Routes", "Federal Routes", "Metropolitan"]
     default_cluster: "Metropolitan" # This identifies where null values should be moved to
     font_size: 10 # This specifies how big the labels should be
-    fig_size: [ 20,8 ]
+    fig_size: [ 12,6]
 modelling:
   columns_to_dummy: ["Weather_Cluster", "Road_Type", "Road_Type_Cluster", "County_Cluster", "County",
                      "Astronomical_Twilight", "Nautical_Twilight", "Sunrise_Sunset", "Civil_Twilight",
@@ -104,10 +122,10 @@ modelling:
     Astronomical_Twilight: "mode"
   response: "Severity_Gt_2"
   predictors:
-    # - "Temperature.F."
-    # - "Wind_Chill.F."
-    - "Visibility.mi."
-    # - "Wind_Speed.mph."
+    # - "Temperature.F." # This is unlikely to be predictive
+    # - "Wind_Chill.F." # This is unlikely to be predictive
+    # - "Visibility.mi." # We already have flags to indicate fog and haze weather.
+    # - "Wind_Speed.mph." # This is unlikely to be predictive
     - "Precipitation.in."
     - "Amenity"
     - "Bump"
@@ -122,22 +140,18 @@ modelling:
     - "Traffic_Calming"
     - "Traffic_Signal"
     - "Sunrise_Sunset_Night"
-    - "Civil_Twilight_Night"
-    - "Nautical_Twilight_Night"
+    # - "Civil_Twilight_Night" # Astronomical_Twilight_Night was found to be a stronger predictor
+    # - "Nautical_Twilight_Night" # Astronomical_Twilight_Night was found to be a stronger predictor
     - "Astronomical_Twilight_Night"
-    #- "Roadway_Clearance_Time"
-    #- "Weather_Cluster_Clear"
-    - "Weather_Cluster_Fog"
-    - "Weather_Cluster_Overcast"
-    - "Weather_Cluster_Snow"
-    #- "Road_Type_Avenue"
+    #- "Roadway_Clearance_Time" # This is a causational feature, so not used
+    #- "Road_Type_Avenue" # This is dropped by pd.get_dummies
     - "Road_Type_Boulevard_Place"
     - "Road_Type_Bridge_Tunnel"
     - "Road_Type_Circuit"
     - "Road_Type_County_Route"
     - "Road_Type_Drive"
     - "Road_Type_Expressway"
-    #- "Road_Type_Federal_Route"
+    #- "Road_Type_Federal_Route" # This is not used, since similar ones are more predictive
     - "Road_Type_Highway"
     - "Road_Type_Mall_Lane"
     - "Road_Type_Numbered_Street"
@@ -148,80 +162,17 @@ modelling:
     - "Road_Type_State_Route"
     - "Road_Type_Street"
     - "Road_Type_Turnpike"
-    #- "Road_Type_Cluster_Boulevards_Places"
-    #- "Road_Type_Cluster_Circuits"
-    #- "Road_Type_Cluster_County Route"
+    - "Road_Type_Cluster_Parks and Link Roads"
+    #- "Road_Type_Cluster_Shopping Districts" # This is similar to the Mall Lane feature
+    #- "Road_Type_Cluster_Arterial Roads" # This is dropped by pd.get_dummies
+    #- "Road_Type_Cluster_County Routes" # This is redundant, given it would be the same as "Road_Type_County_Route"
+    - "Road_Type_Cluster_Federal Routes"
     - "Road_Type_Cluster_Metropolitan"
-    #- "Road_Type_Cluster_Spur"
-    - "Road_Type_Cluster_State and Federal Routes"
-    #- "County_Cluster_Regional_Centre"
+    #- "County_Cluster_Regional_Centre" # This is dropped by pd.get_dummies
     - "County_Cluster_Rural"
     - "County_Cluster_Upstate_East"
     - "County_Cluster_Upstate_West"
     - "County_Cluster_Urban_Centre"
-    #- "County_Albany"
-    #- "County_Allegany"
-    #- "County_Bronx"
-    #- "County_Broome"
-    #- "County_Cattaraugus"
-    #- "County_Cayuga"
-    #- "County_Chautauqua"
-    #- "County_Chemung"
-    #- "County_Chenango"
-    #- "County_Clinton"
-    #- "County_Columbia"
-    #- "County_Cortland"
-    #- "County_Delaware"
-    #- "County_Dutchess"
-    #- "County_Erie"
-    #- "County_Essex"
-    #- "County_Franklin"
-    #- "County_Fulton"
-    #- "County_Genesee"
-    #- "County_Greene"
-    #- "County_Hamilton"
-    #- "County_Herkimer"
-    #- "County_Jefferson"
-    #- "County_Kings"
-    #- "County_Lewis"
-    #- "County_Livingston"
-    #- "County_Madison"
-    #- "County_Monroe"
-    #- "County_Montgomery"
-    #- "County_Nassau"
-    #- "County_New York"
-    #- "County_Niagara"
-    #- "County_Oneida"
-    #- "County_Onondaga"
-    #- "County_Ontario"
-    #- "County_Orange"
-    #- "County_Orleans"
-    #- "County_Oswego"
-    #- "County_Otsego"
-    #- "County_Putnam"
-    #- "County_Queens"
-    #- "County_Rensselaer"
-    #- "County_Richmond"
-    #- "County_Rockland"
-    #- "County_Saint Lawrence"
-    #- "County_Saratoga"
-    #- "County_Schenectady"
-    #- "County_Schoharie"
-    #- "County_Schuyler"
-    #- "County_Seneca"
-    #- "County_St. Lawrence"
-    #- "County_Steuben"
-    #- "County_Suffolk"
-    #- "County_Sullivan"
-    #- "County_Tioga"
-    #- "County_Tompkins"
-    #- "County_Ulster"
-    #- "County_Warren"
-    #- "County_Washington"
-    #- "County_Wayne"
-    #- "County_Westchester"
-    #- "County_Wyoming"
-    #- "County_Yates"
     - "Weekend"
     - "Late_Night"
     - "Morning_Peak"
@@ -232,7 +183,7 @@ modelling:
     - "Vehicle_Fire"
     - "Construction"
     - "Truck"
-    - "Fuel_Spillage"
+    # - "Fuel_Spillage" # Removed due to insufficient number of records
     - "Multilane_Road"
     - "Outage"
     - "Slow_Traffic"
@@ -246,3 +197,10 @@ modelling:
     - "Regional_Council_Mid_Hudson"
     - "Regional_Council_New_York_City"
     - "Regional_Council_Long_Island"
+    - "Snow_Ice"
+    - "Fog_Haze"
+    - "Clouds"
+    - "Rain"
+    - "Windy"
+    - "Storm"
+    - "Clear"

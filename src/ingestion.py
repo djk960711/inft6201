@@ -2,6 +2,9 @@ import pandas as pd
 from typing import Dict
 
 class Ingestion(object):
+    """
+    This module is designed to house all functionality related to deduping and basic data prep
+    """
     @staticmethod
     def parse_datetime_columns(raw_file: pd.DataFrame, ingestion_config: Dict) -> pd.DataFrame:
         """
@@ -30,7 +33,7 @@ class Ingestion(object):
         for deduping_keys in ingestion_config['deduping_keys']:
             print(f"Previous row size: {len(raw_data_deduped)}")
             print(f"Deduping keys: {str(deduping_keys)}")
-            raw_data_deduped.drop_duplicates(subset=deduping_keys, inplace=True)
+            raw_data_deduped = raw_data_deduped.drop_duplicates(subset=deduping_keys)
             print(f"Subsequent row size: {len(raw_data_deduped)}")
 
         return raw_data_deduped
