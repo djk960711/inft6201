@@ -10,7 +10,7 @@ from sklearn import metrics
 
 from src import Ingestion, Feature, Modelling, Descriptive
 
-# The code is structred into two steps:
+# The code is structured into two steps:
 # - Ingestion and Enrichment: This takes the raw data, dedupes, imputes nulls and creates new features.
 # - Modelling and Diagnostics: This takes the enriched data to split into train/validation, perform modelling and output
 #    diagnostics
@@ -103,24 +103,24 @@ def ingestion_and_enrichment():
     figures_to_save['severity_by_month.png'] = Descriptive.get_severity_by_month_plot(ingested_data, raw_data, width=5)
     figures_to_save['severity_by_road_type.png'] = Descriptive.get_road_type_by_month_plot(ingested_data)
     figures_to_save['severity_by_council_region.png'] = Descriptive.get_council_region_by_month_plot(ingested_data)
-    ### Plot count of incidents by severity across all categorical columns that have less than 20 categories
+
+    ### 3.1.1. Plot count of incidents by severity across all categorical columns that have less than 20 categories
     for categorical_column in [column for column in ingested_data.columns if len(ingested_data[column].unique()) < 20]:
         figures_to_save[f'severity_count_by_{categorical_column}.png'] = Descriptive.get_severity_by_category_plot(
             ingested_data,
             categorical_column,
             width=0.8
         )
-    ### Plot proportion of incidents by severity across all categorical columns that have less than 20 categories
-    for categorical_column in [column for column in ingested_data.columns if len(ingested_data[column].unique()) < 20]:
-        figures_to_save[f'severity_prop_by_{categorical_column}.png'] = Descriptive.get_severity_by_category_plot(
-            ingested_data,
-            categorical_column,
-            width=0.8,
-            prop=True
-        )
-    ###
+
+    ### 3.1.2. Plot variables by day-of-week to understand why weekends have a higher risk profile
     figures_to_save['timeofday_by_dayofweek.png'] = Descriptive.get_time_of_day_by_day_of_week(ingested_data)
     figures_to_save['roadtype_by_dayofweek.png'] = Descriptive.get_road_type_by_day_of_week(ingested_data)
+
+    ### 3.1.3 Plot the simplified weather condition to understand how weather affects severity. Also identify if
+    #    time-of-day is potentially confounding this result - are we saying clear weather is more dangerous because
+    #    late night incidents are usually reported as clear.
+    figures_to_save['weather_condition_severity.png'] = Descriptive.get_weather_count_by_severity(ingested_data)
+    figures_to_save['weather_condition_tod.png'] = Descriptive.get_weather_count_by_time_of_day(ingested_data)
 
     # Step n: Save results to the results folder
     if not os.path.exists("results/preprocessing"):

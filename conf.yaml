@@ -50,9 +50,9 @@ feature_creation:
       Park_Causeway: "PARK\\b|PATH|TRAIL|\\bTRL\\b|GREENWAY|LOCKHART\\sLOOP|PEDESTRIAN|CRK|FERRY|\\bPASS|BIKEWAY|\\bACRES\\b|\\bCAMP\\b|CSWY"
     default: "Street"
   Weather_Condition:
-    number_clusters: 6
+    number_clusters: 4
     algorithm: "ward"
-    cluster_names: ["Clear", "Overcast", "Snow", "Fog", "Five", "Six"]
+    cluster_names: ["Clear", "Overcast", "Snow", "Fog"]
     default_cluster: "Clear" # This identifies where null values should be moved to
     font_size: 6 # This specifies how big the labels should be
     fig_size: [12,6]
