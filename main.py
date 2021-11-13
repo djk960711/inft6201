@@ -71,6 +71,7 @@ def ingestion_and_enrichment():
     )
     ## 2.4. Weather categories
     ### 2.4.1. A clustering approach was first trialled, where clustering based on severity profile
+    #### !!This clustering feature was deprecated!!
     figures_to_save['weather_plot.png'], weather_mappings, ingested_data['Weather_Cluster'] = Feature.created_clustered_column(
         ingested_data,
         'Weather_Condition',
@@ -122,6 +123,37 @@ def ingestion_and_enrichment():
     figures_to_save['weather_condition_severity.png'] = Descriptive.get_weather_count_by_severity(ingested_data)
     figures_to_save['weather_condition_tod.png'] = Descriptive.get_weather_count_by_time_of_day(ingested_data)
 
+    # 4. Statistical Tests
+    ## 4.1. Run KW test on all engineered features.
+    stat_test_results = Feature.perform_kw_test(
+        pd.concat([
+            ingested_data,
+            pd.DataFrame(  # Condense the time of day flags into a single column for the KW test
+                ingested_data[["Late_Night","Morning_Peak","Midday","Afternoon_Peak"]].idxmax(axis=1),
+                columns=['TimeOfDayRule']
+            )
+        ], axis=1),
+        ["County_Cluster", "Road_Type_Cluster", "Hour_Cluster", # Cluster columns
+         "Regional_Council", "Hour", "Road_Type", "Weekend",  "TimeOfDayRule", # Rule-based columns
+         "Snow_Ice", "Fog_Haze", "Clouds", "Rain", "Windy", "Storm", "Clear", # Weather columns (not mutually exclusive)
+         "Overturned", "Vehicle_Fire", "Construction", "Truck", "Fuel_Spillage", "Multilane_Road", "Outage",
+             "Slow_Traffic", "Ramp" # Incident types (not mutually exclusive)
+         ]
+    )
+    ## 4.2 Run Mann-whitney on multinomial features
+    mw_stat_test_results = Feature.perform_mw_test(
+        pd.concat([
+            ingested_data,
+            pd.DataFrame(  # Condense the time of day flags into a single column for the KW test
+                ingested_data[["Late_Night", "Morning_Peak", "Midday", "Afternoon_Peak"]].idxmax(axis=1),
+                columns=['TimeOfDayRule']
+            )
+        ], axis=1),
+        ["County_Cluster", "Road_Type_Cluster", "Hour_Cluster",  # Cluster columns
+         "Regional_Council", "Hour", "Road_Type", "TimeOfDayRule"  # Rule-based columns
+         ]
+    )
+
     # Step n: Save results to the results folder
     if not os.path.exists("results/preprocessing"):
         os.makedirs("results/preprocessing")
@@ -130,6 +162,8 @@ def ingestion_and_enrichment():
     county_mappings.to_csv("results/preprocessing/county_mappings.csv")
     road_type_mappings.to_csv("results/preprocessing/road_type_mappings.csv")
     hour_mappings.to_csv("results/preprocessing/hour_mappings.csv")
+    stat_test_results.to_csv("results/preprocessing/stat_test_results.csv")
+    mw_stat_test_results.to_csv("results/preprocessing/mw_stat_test_results.csv")
     ## Save all figures.
     [fig.savefig(f"results/preprocessing/{path}", bbox_inches="tight") for path, fig in figures_to_save.items()]
     ## Close all figures to save memory
@@ -157,12 +191,6 @@ def modelling_and_diagnostics():
     enriched_data = enriched_data[~((enriched_data["Start_Time"].dt.month > 7) & (enriched_data["Start_Time"].dt.year == 2020))]
     # Step 4: Split into train and validation, where the validation is solely used for assessing performance of model.
     train_data, validation_data = train_test_split(enriched_data, test_size=0.2, random_state=42)
-
-    # train_data = enriched_data[~((enriched_data["Start_Time"].dt.month>=8) & (enriched_data["Start_Time"].dt.year==2020))]
-    # validation_data = enriched_data[
-    #     (enriched_data["Start_Time"].dt.month >= 8) & (enriched_data["Start_Time"].dt.year == 2020)
-    # ]
-
 
     # Step 4: Fit Regularised Linear Regression model
     train_data_X = train_data[config['modelling']['predictors']]
@@ -220,4 +248,4 @@ def modelling_and_diagnostics():
 if __name__ == "__main__":
     # These two parts of the pipeline are split into two, since each is time-consuming.
     ingestion_and_enrichment()
-    # modelling_and_diagnostics()
+    modelling_and_diagnostics()

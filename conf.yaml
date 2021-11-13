@@ -1,19 +1,21 @@
-input_file: "data/ny_accidents.csv"
-definition_file: "data/definitions.csv"
+# Inputs
+input_file: "data/ny_accidents.csv" # The raw supplied data path
+definition_file: "data/definitions.csv" # A mapping from name -> description
+# Any deduping config
 ingestion:
-  timestamp_columns:
+  timestamp_columns: # Convert string to python datetime
     Start_Time: "%Y-%m-%d %H:%M:%S"
     End_Time: "%Y-%m-%d %H:%M:%S"
-  deduping_keys:
+  deduping_keys: # Dedupe on these keys
     - ["Start_Time", "End_Time", "City"]
     - ["Start_Time", "Start_Lat", "Start_Lng"]
     - ["End_Time", "Start_Lat", "Start_Lng"]
     - ["Start_Time", "Description", "County", "Severity"] # Descriptions are usually quite well defined
-
+# Config related to the creation of features
 feature_creation:
-  roadway_clearance_time:
-    winsorizing_ratio: [0.0, 0.95]
-  incident_type:
+  roadway_clearance_time: # DEPRECATED: This is defined as End_Time-Start_Time
+    winsorizing_ratio: [0.0, 0.95] # Clear data issues were remediated with winsorizing
+  incident_type: # Extracting keywords from the description to describe incident
     Ramp: "\\bRAMP\\b"
     Overturned: "\\bOVERTURNED\\b"
     Vehicle_Fire: "\\bVEHICLE\\bFIRE\\b"
@@ -23,12 +25,12 @@ feature_creation:
     Multilane_Road: "\\bLANE(?:S)?\\b"
     Outage: "TRAFFIC\\sSIGNALS\\bNOT|\\bFALLEN\\sTREE|\\bFALLEN\\sPOWER"
     Slow_Traffic: "SLOW\\bTRAFFIC"
-  time_of_day:
+  time_of_day: # Using rules to map hour to specific time period
     Late_Night: [20,21,22,23,0,1,2,3,4,5,6]
     Morning_Peak: [7,8,9,10]
     Midday: [11,12,13,14]
     Afternoon_Peak: [15,16,17,18,19]
-  street_type:
+  street_type: # Use regex to get road type from Street column
     rules:
       County_Route: "COUNTY\\sROUTE" # The ordering of rules is important here - first match takes precedence
       State_Route: "STATE\\sROUTE|(?:NY)-[0-9]+"
@@ -49,14 +51,14 @@ feature_creation:
       Mall_Lane: "\\bMALL\\b|\\bLN\\b"
       Park_Causeway: "PARK\\b|PATH|TRAIL|\\bTRL\\b|GREENWAY|LOCKHART\\sLOOP|PEDESTRIAN|CRK|FERRY|\\bPASS|BIKEWAY|\\bACRES\\b|\\bCAMP\\b|CSWY"
     default: "Street"
-  Weather_Condition:
+  Weather_Condition: # DEPRECATED FEATURE: A rule-based approach was used, since clustering gave class imbalance
     number_clusters: 4
     algorithm: "ward"
     cluster_names: ["Clear", "Overcast", "Snow", "Fog"]
     default_cluster: "Clear" # This identifies where null values should be moved to
     font_size: 6 # This specifies how big the labels should be
     fig_size: [12,6]
-  Weather_Simplified:
+  Weather_Simplified: # Using mappings to take a weather value and assign it to this non-mutually exclusive set of flags.
     Snow_Ice: ["Blowing Snow", "Blowing Snow / Windy", "Heavy Snow", "Heavy Snow / Windy", "Light Snow", "Ice Pellets",
            "Light Snow / Windy", "Snow", "Sleet", "Snow / Windy", "Snow and Sleet", "Snow and Sleet / Windy",
             "Wintry Mix"]
@@ -74,21 +76,21 @@ feature_creation:
     Storm: ["Heavy T-Storm","Heavy T-Storm / Windy","T-Storm","T-Storm / Windy","Light Rain with Thunder","Thunder",
             "Thunder / Windy","Thunder in the Vicinity"]
     Clear: ["Clear", "Fair"]
-  Hour:
+  Hour: # Cluster hour into 4 clusters
     number_clusters: 4
     algorithm: "ward"
     cluster_names: [ "Late_Night", "Day", "Early_Morning", "Morning_Peak" ]
     default_cluster: "Day" # This identifies where null values should be moved to
     font_size: 10 # This specifies how big the labels should be
     fig_size: [ 12,6 ]
-  County:
+  County: # Cluster county into 5 clusters
     number_clusters: 5
     algorithm: "average"
     cluster_names: [ "Rural", "Urban_Centre", "Regional_Centre", "Upstate_West", "Upstate_East"]
     default_cluster: "Urban_Centre" # This identifies where null values should be moved to
     font_size: 6 # This specifies how big the labels should be
     fig_size: [12,6]
-  Regional_Council:
+  Regional_Council: # Use rules to group counties into their regional councils
     Western_New_York: ["Allegany", "Cattaraugus", "Chautauqua", "Erie", "Niagara"]
     Finger_Lakes: ["Genesee", "Livingston", "Monroe", "Ontario", "Orleans", "Seneca", "Wayne", "Wyoming", "Yates"]
     Southern_Tier: ["Broome", "Chemung", "Chenango", "Delaware", "Schuyler", "Steuben", "Tioga", "Tompkins"]
@@ -99,18 +101,18 @@ feature_creation:
     Mid_Hudson: ["Dutchess", "Orange", "Putnam", "Rockland", "Sullivan", "Ulster", "Westchester"]
     New_York_City: ["Bronx", "Kings", "New York", "Richmond", "Queens"]
     Long_Island: ["Nassau", "Suffolk"]
-  Road_Type:
+  Road_Type: # Cluster road types into 6
     number_clusters: 6
     algorithm: "ward"
     cluster_names: [ "Parks and Link Roads", "Shopping Districts", "Arterial Roads", "County Routes", "Federal Routes", "Metropolitan"]
     default_cluster: "Metropolitan" # This identifies where null values should be moved to
     font_size: 10 # This specifies how big the labels should be
     fig_size: [ 12,6]
-modelling:
+modelling: # Config for final model data prep
   columns_to_dummy: ["Weather_Cluster", "Road_Type", "Road_Type_Cluster", "County_Cluster", "County",
                      "Astronomical_Twilight", "Nautical_Twilight", "Sunrise_Sunset", "Civil_Twilight",
                      "Regional_Council"]
-  columns_to_impute:
+  columns_to_impute: # Columns and impute method
     Temperature.F.: "median"
     Visibility.mi.: "median"
     Wind_Speed.mph.: "median"
@@ -120,8 +122,8 @@ modelling:
     Civil_Twilight: "mode"
     Nautical_Twilight: "mode"
     Astronomical_Twilight: "mode"
-  response: "Severity_Gt_2"
-  predictors:
+  response: "Severity_Gt_2" # The response is severity greater than 2
+  predictors: # All predictors considered by the model
     # - "Temperature.F." # This is unlikely to be predictive
     # - "Wind_Chill.F." # This is unlikely to be predictive
     # - "Visibility.mi." # We already have flags to indicate fog and haze weather.
@@ -193,7 +195,7 @@ modelling:
     - "Regional_Council_Central_New_York"
     - "Regional_Council_Mohawk_Valley"
     - "Regional_Council_North_Country"
-    # - "Regional_Council_Capital_Region"
+    # - "Regional_Council_Capital_Region" This is removed by pd.get_dummies
     - "Regional_Council_Mid_Hudson"
     - "Regional_Council_New_York_City"
     - "Regional_Council_Long_Island"

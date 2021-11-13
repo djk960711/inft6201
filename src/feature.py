@@ -5,6 +5,7 @@ import re
 
 from scipy.stats.mstats import winsorize
 from scipy.cluster.hierarchy import dendrogram
+from scipy.stats import kruskal, mannwhitneyu
 from sklearn.cluster import AgglomerativeClustering
 from typing import Dict
 
@@ -187,6 +188,51 @@ class Feature:
         }
         return ingested_file['County'].replace(mappings)
 
+    @staticmethod
+    def perform_kw_test(data: pd.DataFrame, columns: list[str]):
+        """
+        Performs the kruskal wallis test on all columns and returns a dataframe for all tests
+        :param data: The original dataset
+        :param columns: The set of columns in which to perform the test
+        :return: A dataframe with the test results for all columns
+        """
+        # Filter out data beyond June 2020
+        data = data[~((data["Start_Time"].dt.month > 7) & (data["Start_Time"].dt.year == 2020))]
+        # Perform tests iteratively
+        test_outcomes = [
+            [column, *kruskal(*data.groupby(by=[column])['Severity'].apply(list))]
+            for column in columns # Run for each column
+            if len(data[column].unique())>1 # Ensure that the column has more than 1 value, otherwise the test is undef.
+        ]
+        # Convert to df and return.
+        return pd.DataFrame.from_records(test_outcomes, columns=['Feature', 'Test Statistic', 'pvalue'])
+
+    @staticmethod
+    def perform_mw_test(data: pd.DataFrame, columns: list[str]):
+        """
+        Performs the mann-whitney u test on all pairs of categories in specified columns and returns a dataframe for
+            all tests
+        :param data: The original dataset
+        :param columns: The set of columns in which to perform the test
+        :return: A dataframe with the test results for all pairs in all columns
+        """
+        # Filter out data beyond June 2020
+        data = data[~((data["Start_Time"].dt.month > 7) & (data["Start_Time"].dt.year == 2020))]
+        # Perform tests iteratively
+        test_outcomes = [
+            [column, pair1, pair2,
+                *mannwhitneyu(data.loc[data[column] == pair1, 'Severity'], data.loc[data[column] == pair2, 'Severity'])]
+            for column in columns  # Run for each column
+            if len(data[column].unique()) > 1 #Ensure that the column has more than 1 value, otherwise the test is undef.
+            for pair1 in data[column].unique()
+            for pair2 in data[column].unique()
+            if pair1 > pair2 # Only take one set of pairs once
+        ]
+        # Convert to df and return.
+        return pd.DataFrame.from_records(
+            test_outcomes,
+            columns=['Feature', 'Category 1', 'Category 2', 'Test Statistic', 'pvalue']
+        )
 
 
 def plot_dendrogram(model, **kwargs):

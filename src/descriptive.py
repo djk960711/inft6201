@@ -224,7 +224,7 @@ class Descriptive:
         :return: A plot of severity by category
         """
         colours = ['#CCFF99', '#FFFF99', '#FFB266', '#FF6666']
-        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
         # Remove the period of July 2020 to December 2020.
         data = data[~((data["Start_Time"].dt.month > 7) & (data["Start_Time"].dt.year == 2020))]
         # Get the counts by severity and category in a pivoted form
@@ -368,43 +368,6 @@ class Descriptive:
         plt.xticks(range(0, len(rt_by_dow_data.index)), rt_by_dow_data.index)
         return fig
 
-    # @staticmethod
-    # def get_weather_count_by_severity(data: pd.DataFrame, width=0.1):
-    #     """
-    #     Plot the severity by weather condition (simplified). Note that these aren't mutually exclusive, so care had to
-    #      be taken here
-    #     :param width: Width of the bars
-    #     :param data: The enriched dataset
-    #     :return: A plot with the count of incidents by severity and by weather condition.
-    #     """
-    #     # Colour scheme to apply to the plot
-    #     colours = ['#CCFF99', '#FFFF99', '#FFB266', '#FF6666']
-    #     # Filter out data beyond June 2020
-    #     data = data[~((data["Start_Time"].dt.month > 7) & (data["Start_Time"].dt.year == 2020))]
-    #     # Create figure
-    #     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    #     for index, weather_condition in enumerate(
-    #             weather_conditions := ["Snow_Ice", "Fog_Haze", "Clouds", "Rain", "Windy", "Storm", "Clear"]):
-    #         # Count the number of incidents by severity for that given weather condition.
-    #         count_by_weather_condition = data[data[weather_condition]==1].groupby('Severity')['ID'].count()
-    #         plt.bar(
-    #             [  # Create a bar plot with side-by-side
-    #                 index - len(count_by_weather_condition.index) / 2 * width + width / 2 + severity_index * width
-    #                 for severity_index in count_by_weather_condition.index
-    #             ],
-    #             count_by_weather_condition,
-    #             label=weather_condition.replace("_", " "),  # Add time of day to the legend and remove underscores from text.
-    #             width=width,
-    #             align="center",
-    #             color=colours
-    #         )
-    #     plt.title(f"Number of incidents by weather type and severity")
-    #     plt.xlabel("Weather condition (Simplified)")
-    #     plt.ylabel("Number of indicents")
-    #     plt.xticks(range(0, len(weather_conditions)), weather_conditions)
-    #     stop
-    #     return fig
-
     @staticmethod
     def get_weather_count_by_severity(data: pd.DataFrame, width=0.8):
         """
@@ -419,7 +382,7 @@ class Descriptive:
         # Filter out data beyond June 2020
         data = data[~((data["Start_Time"].dt.month > 7) & (data["Start_Time"].dt.year == 2020))]
         # Create figure
-        fig, ax = plt.subplots(1, 2, figsize=(12,  6))
+        fig, ax = plt.subplots(1, 2, figsize=(12,  4))
         # Getting the count by weather condition (simplified) is a challenge because weather condition is not mutually
         #  exclusive - an incident can occur when it is both windy and rainy.
         count_by_category_severity = pd.concat([
